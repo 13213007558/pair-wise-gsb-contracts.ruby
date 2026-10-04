@@ -14,6 +14,7 @@ require "contracts/method_handler"
 require "contracts/validators"
 require "contracts/call_with"
 require "contracts/core"
+require "contracts/session"
 
 module Contracts
   def self.included(base)
