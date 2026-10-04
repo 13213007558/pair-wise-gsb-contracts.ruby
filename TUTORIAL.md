@@ -756,6 +756,41 @@ unless Contract.valid?(data, HashOf[String,Nat])
 end
 ```
 
+## Session contracts
+
+`Contracts::Session` describes a communication protocol with session types.
+`send` and `receive` carry ordinary contracts, `select` is an internal branch,
+`offer` is an external branch, `rec` creates recursion, and `end_session` ends
+the protocol.
+
+```ruby
+protocol = Contracts::Session.rec(:poll) do |again|
+  Contracts::Session.select(
+    next: Contracts::Session.receive(Integer, Contracts::Session.send(String, again)),
+    stop: Contracts::Session.end_session,
+  )
+end
+
+client, server = Contracts::Session.pair(protocol, Contracts::Session.dual(protocol))
+```
+
+`pair` checks that the two endpoint types are dual before returning either
+endpoint. Endpoints use an in-memory queue and advance only when a method is
+explicitly called. There is no network or background thread.
+
+```ruby
+client.select!(:next)
+server.offer!
+server.send!(7)
+client.receive!
+client.send!("ready")
+server.receive!
+```
+
+Invalid message bodies still use the existing `Contracts` validator. Wrong
+branch direction, early termination, and recursion-state errors raise a
+session error whose `side` identifies the violating endpoint.
+
 ## Auto-generate documentation using contracts
 
 If you are generating documentation for your code with [YARD](http://yardoc.org/), check out [yard-contracts](https://github.com/sfcgeorge/yard-contracts). It will automatically annotate your functions with contracts information. Instead of documenting each parameter for a function yourself, you can just add a contract and yard-contracts will generate the documentation for you!
